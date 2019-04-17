@@ -1,0 +1,20 @@
+[package]
+name = "retroimg"
+version = "0.1.0"
+authors = ["Eduardo Pinho <enet4mikeenet@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "retroimg"
+path = "src/lib.rs"
+
+[[bin]]
+name = "retroimg"
+path = "src/main.rs"
+
+[dependencies]
+exoquant = "0.2.0"
+structopt = "0.2.15"
+image = "0.21.0"
+itertools = "0.8.0"
+num = "0.2.0"
