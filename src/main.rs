@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use structopt::StructOpt;
 
-mod lib;
+extern crate retroimg as lib;
 
 /// Retro effect to images
 #[derive(Debug, StructOpt)]
@@ -22,6 +22,10 @@ pub struct App {
         parse(from_os_str)
     )]
     output: PathBuf,
+
+    /// Color standard
+    #[structopt(short = "s", long = "standard", default_value = "vga")]
+    standard: ColorStandard,
 
     /// Crop the input image to the rectangle (left, top, width, height)
     #[structopt(short = "C", long = "crop", parse(try_from_str = "parse_rect"))]
@@ -66,11 +70,7 @@ struct OutSizeOpts {
     resolution: (u32, u32),
 
     /// Pixel ratio
-    #[structopt(
-        short = "r",
-        long = "pixel-ratio",
-        parse(try_from_str = "parse_ratio")
-    )]
+    #[structopt(short = "r", long = "pixel-ratio", parse(try_from_str = "parse_ratio"))]
     pixel_ratio: Option<Ratio<u32>>,
 
     /// Output image width (defined separately)
@@ -80,6 +80,36 @@ struct OutSizeOpts {
     /// Output image height (defined separately)
     #[structopt(long = "height")]
     height: Option<u32>,
+}
+
+/// Options for the kind of color palette to be simulated. This doesn't affect
+/// the image's resolution.
+#[derive(Debug)]
+pub enum ColorStandard {
+    /// True color 24-bit RGB (8 bits per channel)
+    True24Bit,
+    /// 18-bit RGB (6 bits per channel)
+    Vga18Bit,
+    /// 16-bit RGB, also called High color (5-6-5 bits per R-G-B channel)
+    Vga16Bit,
+    /// All 16 colors from the CGA palette
+    FullCga,
+    /// All 64 colors from the EGA palette
+    FullEga,
+}
+
+impl FromStr for ColorStandard {
+    type Err = &'static str;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "true" | "24bit" => Ok(ColorStandard::True24Bit),
+            "vga" | "VGA" | "18bit" => Ok(ColorStandard::Vga18Bit),
+            "high" | "High" | "16bit" => Ok(ColorStandard::Vga16Bit),
+            "cga" | "CGA" => Ok(ColorStandard::FullCga),
+            "ega" | "EGA" => Ok(ColorStandard::FullEga),
+            _ => Err("no such color standard"),
+        }
+    }
 }
 
 fn parse_rect<T>(value: &str) -> Result<(T, T, T, T), <T as FromStr>::Err>
@@ -143,6 +173,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 width: out_width,
                 height: out_height,
             },
+        standard,
         no_color_limit,
         num_colors,
         verbose,
@@ -168,61 +199,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (out_width, out_height) = match (pixel_ratio, out_width, out_height) {
         (None, None, None) => (res_out_width, res_out_height),
-        (None, Some(w), Some(h)) => (w, h),
-        (Some(r), None, Some(h)) => {
-            /*
-            Rule of proportions... with a twist.
-
-            iW ----> oW
-
-            iH ----> oH
-
-            Without pixel scale correction (pixel ratio `r` = 1):
-
-            oH = iH * oW / iW = oW / iR
-            oW = iW * oH / iH = oH * iR
-
-            For other pixel ratios:
-
-            oR = iR * r
-
-            Therefore:
-
-            oW = oH * oR
-               = oH * iR * r
-               = oH * r * iW / iH
-
-            and
-
-            oH = oW / oR
-               = oW / (iR * r)
-               = oW / ( (iW / iH) * r)
-               = oW * iH / (iW * r)
-            */
-            let w = ((r * h * in_width) / in_height).round().to_integer();
-            (w, h)
-        }
-        (Some(r), Some(w), None) => {
-            let h = (Ratio::from_integer(w) * in_height / (r * in_width))
-                .round()
-                .to_integer();
-            (w, h)
-        }
-        (None, None, Some(h)) => {
-            let ir = Ratio::new(in_width, in_height);
-            let w = (Ratio::from_integer(h) * ir).round().to_integer();
-            (w, h)
-        }
-        (None, Some(w), None) => {
-            let ir = Ratio::new(in_width, in_height);
-            let h = (Ratio::from_integer(w) / ir).round().to_integer();
-            (w, h)
-        }
-        (Some(_r), None, None) => {
-            panic!("'width' or 'height' are required alongside 'pixel_ratio'.")
-        }
-        (Some(_r), Some(_w), Some(_h)) => {
-            panic!("The arguments 'pixel_ratio', 'width' and 'height' cannot be used together.")
+        _ => {
+            lib::resolve_output_resolution(in_width, in_height, out_width, out_height, pixel_ratio)
         }
     };
 
@@ -233,7 +211,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let num_colors = Some(num_colors as usize).filter(|_| !no_color_limit);
 
-    let img = lib::map_to_retro_color_palette(img, num_colors);
+    let img = match standard {
+        ColorStandard::True24Bit => lib::map_to_retro_color_palette(img, lib::color::TrueColor24Bit, num_colors),
+        ColorStandard::Vga18Bit => lib::map_to_retro_color_palette(img, lib::color::Vga18Bit, num_colors),
+        ColorStandard::Vga16Bit => lib::map_to_retro_color_palette(img, lib::color::Vga16Bit, num_colors),
+        ColorStandard::FullEga => lib::map_to_retro_color_palette(img, lib::color::EGA_6BIT, num_colors),
+        ColorStandard::FullCga => lib::map_to_retro_color_palette(img, lib::color::CGA_4BIT, num_colors),
+    };
 
     let img = lib::expand(&img, out_width, out_height);
 

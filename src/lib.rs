@@ -1,23 +1,11 @@
-use exoquant::ditherer::FloydSteinberg;
-use exoquant::optimizer::KMeans;
-use exoquant::{convert_to_indexed, Color};
 use image::imageops::resize;
-use image::{FilterType, GenericImage, ImageBuffer, Pixel, Rgb, RgbImage};
-use itertools::Itertools;
+use image::{FilterType, GenericImage, ImageBuffer, Pixel, RgbImage};
+use num::rational::Ratio;
+use snafu::Snafu;
 
-macro_rules! value_iter {
-    () => {
-        std::iter::empty()
-    };
-    ($v: expr, $( $rest: expr ), +) => {
-        std::iter::once($v).chain(
-            value_iter!($($rest),*)
-        )
-    };
-    ($v: expr) => {
-        std::iter::once($v)
-    };
-}
+pub mod color;
+
+pub use crate::color::{map_to_retro_color_palette, ColorDepth, NearestInPalette};
 
 pub fn reduce<I: 'static>(
     img: &I,
@@ -35,43 +23,6 @@ pub fn crop(mut image: RgbImage, left: u32, top: u32, width: u32, height: u32) -
     image
 }
 
-pub fn map_to_retro_color_palette(image: RgbImage, num_colors: Option<usize>) -> RgbImage {
-    let ditherer = FloydSteinberg::new();
-
-    let pixels = image
-        .pixels()
-        .map(|Rgb { data: [r, g, b] }| Color {
-            r: (r.saturating_add(2)) & !0x03,
-            g: (g.saturating_add(2)) & !0x03,
-            b: (b.saturating_add(2)) & !0x03,
-            a: 255,
-        })
-        .collect_vec();
-
-    let new_pixels = if let Some(num_colors) = num_colors {
-        let (palette, indexed_data) = convert_to_indexed(
-            &pixels,
-            image.width() as usize,
-            num_colors,
-            &KMeans,
-            &ditherer,
-        );
-        indexed_data
-            .into_iter()
-            .map(|i| palette[i as usize])
-            .flat_map(|Color { r, g, b, .. }| value_iter![r, g, b])
-            .collect_vec()
-    } else {
-        pixels
-            .into_iter()
-            .flat_map(|Color { r, g, b, .. }| value_iter![r, g, b])
-            .collect_vec()
-    };
-
-    ImageBuffer::from_raw(image.width(), image.height(), new_pixels)
-        .expect("there should be enough pixels")
-}
-
 pub fn expand<I: 'static>(
     img: &I,
     nwidth: u32,
@@ -83,3 +34,79 @@ where
     resize(img, nwidth, nheight, FilterType::Nearest)
 }
 
+#[derive(Debug, Snafu)]
+#[snafu(visibility(pub))]
+pub enum ResolutionError {
+    #[snafu(display("not enough components to resolve output resolution"))]
+    Non,
+    #[snafu(display("'pixel_ratio', 'width' and 'height' cannot be used together"))]
+    TooMany,
+}
+
+pub fn resolve_output_resolution(
+    width: u32,
+    height: u32,
+    output_width: Option<u32>,
+    output_height: Option<u32>,
+    pixel_ratio: Option<Ratio<u32>>,
+) -> (u32, u32) {
+    match (pixel_ratio, output_width, output_height) {
+        (None, None, None) => panic!("Not enough output components"),
+        (None, Some(w), Some(h)) => (w, h),
+        (Some(r), None, Some(h)) => {
+            /*
+            Rule of proportions... with a twist.
+
+            iW ----> oW
+
+            iH ----> oH
+
+            Without pixel scale correction (pixel ratio `r` = 1):
+
+            oH = iH * oW / iW = oW / iR
+            oW = iW * oH / iH = oH * iR
+
+            For other pixel ratios:
+
+            oR = iR * r
+
+            Therefore:
+
+            oW = oH * oR
+               = oH * iR * r
+               = oH * r * iW / iH
+
+            and
+
+            oH = oW / oR
+               = oW / (iR * r)
+               = oW / ( (iW / iH) * r)
+               = oW * iH / (iW * r)
+            */
+            let w = ((r * h * width) / height).round().to_integer();
+            (w, h)
+        }
+        (Some(r), Some(w), None) => {
+            let h = (Ratio::from_integer(w) * height / (r * width))
+                .round()
+                .to_integer();
+            (w, h)
+        }
+        (None, None, Some(h)) => {
+            let ir = Ratio::new(width, height);
+            let w = (Ratio::from_integer(h) * ir).round().to_integer();
+            (w, h)
+        }
+        (None, Some(w), None) => {
+            let ir = Ratio::new(width, height);
+            let h = (Ratio::from_integer(w) / ir).round().to_integer();
+            (w, h)
+        }
+        (Some(_r), None, None) => {
+            panic!("'width' or 'height' are required alongside 'pixel_ratio'.")
+        }
+        (Some(_r), Some(_w), Some(_h)) => {
+            panic!("The arguments 'pixel_ratio', 'width' and 'height' cannot be used together.")
+        }
+    }
+}
