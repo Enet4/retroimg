@@ -92,6 +92,8 @@ pub enum ColorStandard {
     Vga18Bit,
     /// 16-bit RGB, also called High color (5-6-5 bits per R-G-B channel)
     Vga16Bit,
+    /// Mode 4 of CGA: 3 colors from hardcoded sub-palettes + 1 back color
+    CgaMode4,
     /// All 16 colors from the CGA palette
     FullCga,
     /// All 64 colors from the EGA palette
@@ -105,7 +107,8 @@ impl FromStr for ColorStandard {
             "true" | "24bit" => Ok(ColorStandard::True24Bit),
             "vga" | "VGA" | "18bit" => Ok(ColorStandard::Vga18Bit),
             "high" | "High" | "16bit" => Ok(ColorStandard::Vga16Bit),
-            "cga" | "CGA" => Ok(ColorStandard::FullCga),
+            "cga" | "cgamode4" | "CGA" => Ok(ColorStandard::CgaMode4),
+            "fullcga" | "FULLCGA" => Ok(ColorStandard::FullCga),
             "ega" | "EGA" => Ok(ColorStandard::FullEga),
             _ => Err("no such color standard"),
         }
@@ -209,16 +212,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let img = lib::reduce(&img, in_width, in_height);
 
-    let num_colors = Some(num_colors as usize).filter(|_| !no_color_limit);
+    let num_colors = Some(num_colors as u32).filter(|_| !no_color_limit);
 
-    let img = match standard {
-        ColorStandard::True24Bit => lib::map_to_retro_color_palette(img, lib::color::TrueColor24Bit, num_colors),
-        ColorStandard::Vga18Bit => lib::map_to_retro_color_palette(img, lib::color::Vga18Bit, num_colors),
-        ColorStandard::Vga16Bit => lib::map_to_retro_color_palette(img, lib::color::Vga16Bit, num_colors),
-        ColorStandard::FullEga => lib::map_to_retro_color_palette(img, lib::color::EGA_6BIT, num_colors),
-        ColorStandard::FullCga => lib::map_to_retro_color_palette(img, lib::color::CGA_4BIT, num_colors),
+    let depth: Box<dyn lib::ColorDepth> = match standard {
+        ColorStandard::True24Bit => Box::new(lib::color::TrueColor24Bit::default()),
+        ColorStandard::Vga18Bit => Box::new(lib::color::Vga18Bit::default()),
+        ColorStandard::Vga16Bit => Box::new(lib::color::Vga16Bit::default()),
+        ColorStandard::FullEga => Box::new(lib::color::EGA_6BIT),
+        ColorStandard::FullCga => Box::new(lib::color::CGA_4BIT),
+        ColorStandard::CgaMode4 => unimplemented!(),
     };
 
+    let colorbuffer = depth.convert_image(&img, num_colors);
+    let img = lib::color::colors_to_image(img.width(), img.height(), colorbuffer);
     let img = lib::expand(&img, out_width, out_height);
 
     img.save(output)?;

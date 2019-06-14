@@ -5,7 +5,7 @@ use snafu::Snafu;
 
 pub mod color;
 
-pub use crate::color::{map_to_retro_color_palette, ColorDepth, NearestInPalette};
+pub use crate::color::{ColorDepth, FixedPalette};
 
 pub fn reduce<I: 'static>(
     img: &I,

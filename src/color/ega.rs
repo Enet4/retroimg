@@ -1,7 +1,7 @@
-use super::NearestInPalette;
+use super::FixedPalette;
 
 /// 64 color palette established by the full-color EGA standard.
-pub static EGA_6BIT: NearestInPalette<&[[u8; 3]]> = NearestInPalette(&[
+pub static EGA_6BIT: FixedPalette<&[[u8; 3]]> = FixedPalette(&[
     [0, 0, 0], // CGA 0
     [0, 0, 0xAA], // CGA 1
     [0, 0xAA, 0], // CGA 2
