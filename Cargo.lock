@@ -375,7 +375,7 @@ dependencies = [
 
 [[package]]
 name = "retroimg"
-version = "0.1.0"
+version = "0.1.0-pre.1"
 dependencies = [
  "exoquant 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
