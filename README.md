@@ -9,7 +9,7 @@ Convert images to appear to be reproduced on retro IBM hardware.
 The full image processing pipeline is composed of the following steps:
 
 1. Image cropping and resizing to a low resolution;
-2. Color quantization and mapping to a restricted color palette and limit in number of colors with dithering;
+2. Color quantization and mapping to a restricted color palette, plus color limit with dithering;
 3. Nearest-neighbor resizing to a high resolution, to make pixels look good, also enabling non-square pixels.
 
 
