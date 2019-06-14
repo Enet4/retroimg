@@ -296,7 +296,7 @@ where
             .pixels()
             .map(|&p| {
                 let Rgb { data: [r, g, b] } = p;
-                self.convert_color(Color { r, g, b, a: 255 })
+                Color { r, g, b, a: 255 }
             })
             .collect_vec();
         
