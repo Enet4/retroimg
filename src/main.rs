@@ -94,6 +94,9 @@ pub enum ColorStandard {
     Vga16Bit,
     /// Mode 4 of CGA: 3 colors from hardcoded sub-palettes + 1 back color
     CgaMode4,
+    /// Mode 4 of CGA, high intensity of sub-palette 1:
+    /// white, cyan, magenta, and one arbitrary back color
+    CgaMode4High1,
     /// All 16 colors from the CGA palette
     FullCga,
     /// All 64 colors from the EGA palette
@@ -103,13 +106,14 @@ pub enum ColorStandard {
 impl FromStr for ColorStandard {
     type Err = &'static str;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
+        match s.to_lowercase().as_str() {
             "true" | "24bit" => Ok(ColorStandard::True24Bit),
-            "vga" | "VGA" | "18bit" => Ok(ColorStandard::Vga18Bit),
-            "high" | "High" | "16bit" => Ok(ColorStandard::Vga16Bit),
-            "cga" | "cgamode4" | "CGA" => Ok(ColorStandard::CgaMode4),
-            "fullcga" | "FULLCGA" => Ok(ColorStandard::FullCga),
-            "ega" | "EGA" => Ok(ColorStandard::FullEga),
+            "vga" | "18bit" => Ok(ColorStandard::Vga18Bit),
+            "high" | "16bit" => Ok(ColorStandard::Vga16Bit),
+            "cga" | "cgamode4" => Ok(ColorStandard::CgaMode4),
+            "cgamode4high1" => Ok(ColorStandard::CgaMode4High1),
+            "fullcga" => Ok(ColorStandard::FullCga),
+            "ega" => Ok(ColorStandard::FullEga),
             _ => Err("no such color standard"),
         }
     }
@@ -218,9 +222,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ColorStandard::True24Bit => Box::new(lib::color::TrueColor24Bit::default()),
         ColorStandard::Vga18Bit => Box::new(lib::color::Vga18Bit::default()),
         ColorStandard::Vga16Bit => Box::new(lib::color::Vga16Bit::default()),
-        ColorStandard::FullEga => Box::new(lib::color::EGA_6BIT),
-        ColorStandard::FullCga => Box::new(lib::color::CGA_4BIT),
-        ColorStandard::CgaMode4 => unimplemented!(),
+        ColorStandard::FullEga => Box::new(lib::color::ega::PALETTE_EGA_6BIT),
+        ColorStandard::FullCga => Box::new(lib::color::cga::PALETTE_CGA_4BIT),
+        ColorStandard::CgaMode4 => Box::new(lib::color::cga::PALETTE_CGA_MODE4),
+        ColorStandard::CgaMode4High1 => Box::new(lib::color::cga::PALETTE_CGA_MODE4_1_HIGH),
     };
 
     let colorbuffer = depth.convert_image(&img, num_colors);

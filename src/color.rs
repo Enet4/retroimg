@@ -1,14 +1,11 @@
 use exoquant::ditherer::FloydSteinberg;
 use exoquant::optimizer::{KMeans, Optimizer};
-use exoquant::{convert_to_indexed, Color, Histogram, Quantizer, Remapper, SimpleColorSpace};
+use exoquant::{Color, Histogram, Quantizer, Remapper, SimpleColorSpace};
 use image::{ImageBuffer, Rgb, RgbImage};
 use itertools::Itertools;
 
 pub mod cga;
 pub mod ega;
-
-pub use self::cga::CGA_4BIT;
-pub use self::ega::EGA_6BIT;
 
 #[macro_export]
 macro_rules! value_iter {
@@ -86,6 +83,24 @@ pub trait ColorDepth {
     }
 }
 
+impl<'a, T: ColorDepth> ColorDepth for &'a T {
+    fn convert_image_with_loss(&self, image: &RgbImage, num_colors: Option<u32>) -> (Vec<Color>, u64) {
+        (**self).convert_image_with_loss(image, num_colors)
+    }
+
+    /// Convert an RGB image to this color depth.
+    fn convert_image(&self, image: &RgbImage, num_colors: Option<u32>) -> Vec<Color> {
+        (**self).convert_image(image, num_colors)
+    }
+
+    /// Estimate the loss obtained from converting an image.
+    /// For the best results, greater discrepancies should result in higher
+    /// loss values.
+    fn loss(&self, image: &RgbImage, num_colors: Option<u32>) -> u64 {
+        (**self).loss(image, num_colors)
+    }
+}
+
 pub trait ColorMapper {
     /// Convert a single color
     fn convert_color(&self, c: Color) -> Color; 
@@ -94,6 +109,16 @@ pub trait ColorMapper {
     fn l1_loss(&self, pixel: Color) -> u64 {
         let converted = self.convert_color(pixel);
         color_diff_l1(pixel, converted)
+    }
+}
+
+impl<'a, T: ColorMapper> ColorMapper for &'a T {
+    fn convert_color(&self, c: Color) -> Color {
+        (**self).convert_color(c)
+    }
+
+    fn l1_loss(&self, pixel: Color) -> u64 {
+        (**self).l1_loss(pixel)
     }
 }
 
@@ -161,10 +186,7 @@ where
         } else {
             pixels
         };
-        let loss = Iterator::zip(original.into_iter(), converted_pixels.iter())
-            .map(|(a, b)| color_diff_l1(a, *b))
-            .sum::<u64>();
-
+        let loss = image_diff_l1(&original, &converted_pixels);
         (converted_pixels, loss)
     }
 }
@@ -292,17 +314,10 @@ where
                 Color { r, g, b, a: 255 }
             })
             .collect_vec();
-        let pixels = image
-            .pixels()
-            .map(|&p| {
-                let Rgb { data: [r, g, b] } = p;
-                Color { r, g, b, a: 255 }
-            })
-            .collect_vec();
         
         // optimize palette and dither
         let converted_pixels = if let Some(num_colors) = num_colors {
-            let mut palette = build_palette(&pixels, num_colors);
+            let mut palette = build_palette(&original, num_colors);
     
             // reduce palette's color depth
             for c in &mut palette {
@@ -312,7 +327,7 @@ where
             let colorspace = SimpleColorSpace::default();
             let ditherer = FloydSteinberg::new();
             let remapper = Remapper::new(&palette, &colorspace, &ditherer);
-            let indexed_data = remapper.remap(&pixels, image.width() as usize);
+            let indexed_data = remapper.remap(&original, image.width() as usize);
             let pixels = indexed_data
                 .into_iter()
                 .map(|i| palette[i as usize])
@@ -320,12 +335,9 @@ where
             
             pixels
         } else {
-            pixels
+            original.clone()
         };
-        let loss = Iterator::zip(original.into_iter(), converted_pixels.iter())
-            .map(|(a, b)| color_diff_l1(a, *b))
-            .sum::<u64>();
-
+        let loss = image_diff_l1(&original, &converted_pixels);
         (converted_pixels, loss)
     }
 }
@@ -348,12 +360,12 @@ fn build_palette(pixels: &[Color], num_colors: u32) -> Vec<Color> {
 
     let palette = quantizer.colors(&colorspace);
     // this optimization is more useful than the above and a lot less slow
-    optimizer.optimize_palette(&colorspace, &palette, &histogram, 4)
+    optimizer.optimize_palette(&colorspace, &palette, &histogram, 8)
 }
 
 /// Color depth emulating a combination of one freely selectable
 /// background color (`B`) with any of the other colors (`F`).
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct BackForePalette<B, F>(B, F);
 
 impl<B, F> BackForePalette<B, F>
@@ -391,10 +403,6 @@ where
         BackForePalette::<B, F>::convert_color(pixel, &self.0)
     }
 
-    fn convert_color_fore(&self, pixel: Color) -> Color {
-        BackForePalette::<B, F>::convert_color(pixel, &self.1)
-    }
-
     /// Identify the best background color
     fn background_color(&self, image: &RgbImage) -> Color {
         // we'll fetch the median color of the image for the time being
@@ -405,23 +413,9 @@ where
                 Color { r, g, b, a: 255 }
             })
             .collect_vec();
-        let mut r = original.iter().cloned().map(|Color { r, ..}| r).collect_vec();
-        let mut g = original.iter().cloned().map(|Color { r, ..}| r).collect_vec();
-        let mut b = original.iter().cloned().map(|Color { r, ..}| r).collect_vec();
-        r.sort_unstable();
-        g.sort_unstable();
-        b.sort_unstable();
-
-        Color {
-            r: r[r.len() / 2],
-            g: g[g.len() / 2],
-            b: b[b.len() / 2],
-            a: 255,
-        }
+        color_median(&original)
     }
 }
-
-
 
 impl<B, F> ColorDepth for BackForePalette<B, F>
 where
@@ -445,17 +439,10 @@ where
                 Color { r, g, b, a: 255 }
             })
             .collect_vec();
-        let pixels = image
-            .pixels()
-            .map(|&p| {
-                let Rgb { data: [r, g, b] } = p;
-                fixed.convert_color(Color { r, g, b, a: 255 })
-            })
-            .collect_vec();
         
         // optimize palette and dither
         let converted_pixels = if let Some(num_colors) = num_colors {
-            let mut palette = build_palette(&pixels, num_colors);
+            let mut palette = build_palette(&original, num_colors);
     
             // reduce palette's color depth
             for c in &mut palette {
@@ -465,7 +452,7 @@ where
             let colorspace = SimpleColorSpace::default();
             let ditherer = FloydSteinberg::new();
             let remapper = Remapper::new(&palette, &colorspace, &ditherer);
-            let indexed_data = remapper.remap(&pixels, image.width() as usize);
+            let indexed_data = remapper.remap(&original, image.width() as usize);
             let pixels = indexed_data
                 .into_iter()
                 .map(|i| palette[i as usize])
@@ -473,54 +460,28 @@ where
             
             pixels
         } else {
-            pixels
+            original.clone()
         };
-        let loss = Iterator::zip(original.into_iter(), converted_pixels.iter())
-            .map(|(a, b)| color_diff_l1(a, *b))
-            .sum::<u64>();
+        let loss = image_diff_l1(&original, &converted_pixels);
 
         (converted_pixels, loss)
     }
 }
 
+/// A collection of palettes, the one yielding the lowest loss is used.
+#[derive(Debug, Copy, Clone)]
+pub struct BestPalette<C>(C);
 
-/// Reduce the color palette of the given image according to the provided
-/// color depth and maximum number of simultaneous colors.
-#[deprecated]
-pub fn map_to_retro_color_palette<D>(
-    image: RgbImage,
-    depth: D,
-    num_colors: Option<u32>,
-) -> RgbImage
+impl<C, P> ColorDepth for BestPalette<C>
 where
-    D: ColorDepth + ColorMapper,
+    C: std::ops::Deref<Target=[P]>,
+    P: ColorDepth,
 {
-    let pixels = image
-        .pixels()
-        .map(|&Rgb { data: [r, g, b] }| Color { r, g, b, a: 255 })
-        .collect_vec();
-
-    if let Some(num_colors) = num_colors {
-        let mut palette = build_palette(&pixels, num_colors);
-
-        // reduce palette's color depth
-        for c in &mut palette {
-            *c = depth.convert_color(*c);
-        }
-
-        let colorspace = SimpleColorSpace::default();
-        let ditherer = FloydSteinberg::new();
-        let remapper = Remapper::new(&palette, &colorspace, &ditherer);
-        let indexed_data = remapper.remap(&pixels, image.width() as usize);
-        let pixels = indexed_data
-            .into_iter()
-            .map(|i| palette[i as usize])
-            .flat_map(|Color { r, g, b, .. }| value_iter![r, g, b])
-            .collect_vec();
-        ImageBuffer::from_raw(image.width(), image.height(), pixels)
-            .expect("there should be enough pixels")
-    } else {
-        colors_to_image(image.width(), image.height(), pixels)
+    fn convert_image_with_loss(&self, image: &RgbImage, num_colors: Option<u32>) -> (Vec<Color>, u64) {
+        self.0.into_iter()
+            .map(|cd| cd.convert_image_with_loss(image, num_colors))
+            .min_by_key(|(_pixels, loss)| *loss)
+            .unwrap()
     }
 }
 
@@ -532,41 +493,5 @@ where
             .flat_map(|Color { r, g, b, .. }| value_iter![r, g, b])
             .collect_vec();
     ImageBuffer::from_raw(width, height, pixels)
-        .expect("there should be enough pixels")
-}
-
-pub fn map_to_retro_color_palette_old<D>(
-    image: RgbImage,
-    depth: D,
-    num_colors: Option<usize>,
-) -> RgbImage
-where
-    D: ColorDepth,
-{
-    let ditherer = FloydSteinberg::new();
-
-    let pixels = depth.convert_image(&image, None);
-
-    let new_pixels = if let Some(num_colors) = num_colors {
-        let (palette, indexed_data) = convert_to_indexed(
-            &pixels,
-            image.width() as usize,
-            num_colors,
-            &KMeans,
-            &ditherer,
-        );
-        indexed_data
-            .into_iter()
-            .map(|i| palette[i as usize])
-            .flat_map(|Color { r, g, b, .. }| value_iter![r, g, b])
-            .collect_vec()
-    } else {
-        pixels
-            .into_iter()
-            .flat_map(|Color { r, g, b, .. }| value_iter![r, g, b])
-            .collect_vec()
-    };
-
-    ImageBuffer::from_raw(image.width(), image.height(), new_pixels)
         .expect("there should be enough pixels")
 }

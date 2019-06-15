@@ -1,7 +1,10 @@
 use super::FixedPalette;
 
 /// 64 color palette established by the full-color EGA standard.
-pub static EGA_6BIT: FixedPalette<&[[u8; 3]]> = FixedPalette(&[
+pub static PALETTE_EGA_6BIT: FixedPalette<&[[u8; 3]]> = FixedPalette(EGA_6BIT);
+
+/// 64 color palette established by the full-color EGA standard.
+pub static EGA_6BIT: &[[u8; 3]] = &[
     [0, 0, 0], // CGA 0
     [0, 0, 0xAA], // CGA 1
     [0, 0xAA, 0], // CGA 2
@@ -66,4 +69,4 @@ pub static EGA_6BIT: FixedPalette<&[[u8; 3]]> = FixedPalette(&[
     [0xFF, 0x55, 0xFF], // CGA 13
     [0xFF, 0xFF, 0x55], // CGA 14
     [0xFF, 0xFF, 0xFF], // CGA 15
-]);
+];
