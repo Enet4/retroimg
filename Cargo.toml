@@ -16,8 +16,8 @@ path = "src/main.rs"
 
 [dependencies]
 exoquant = "0.2.0"
-structopt = "0.2.15"
-image = "0.21.0"
-itertools = "0.8.0"
+structopt = "0.3.21"
+image = "0.23.12"
+itertools = "0.10.0"
 num = "0.2.0"
-snafu = "0.2.2"
+snafu = "0.6.10"

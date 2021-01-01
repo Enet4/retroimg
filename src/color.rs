@@ -152,14 +152,14 @@ where
         let original = image
             .pixels()
             .map(|&p| {
-                let Rgb { data: [r, g, b] } = p;
+                let Rgb([r, g, b]) = p;
                 Color { r, g, b, a: 255 }
             })
             .collect_vec();
         let pixels = image
             .pixels()
             .map(|&p| {
-                let Rgb { data: [r, g, b] } = p;
+                let Rgb([r, g, b]) = p;
                 self.0.convert_color(Color { r, g, b, a: 255 })
             })
             .collect_vec();
@@ -310,7 +310,7 @@ where
         let original = image
             .pixels()
             .map(|&p| {
-                let Rgb { data: [r, g, b] } = p;
+                let Rgb([r, g, b]) = p;
                 Color { r, g, b, a: 255 }
             })
             .collect_vec();
@@ -409,7 +409,7 @@ where
         let original = image
             .pixels()
             .map(|&p| {
-                let Rgb { data: [r, g, b] } = p;
+                let Rgb([r, g, b]) = p;
                 Color { r, g, b, a: 255 }
             })
             .collect_vec();
@@ -435,7 +435,7 @@ where
         let original = image
             .pixels()
             .map(|&p| {
-                let Rgb { data: [r, g, b] } = p;
+                let Rgb([r, g, b]) = p;
                 Color { r, g, b, a: 255 }
             })
             .collect_vec();

@@ -9,11 +9,12 @@ Convert images to appear to be reproduced on retro IBM hardware.
 The full image processing pipeline is composed of the following steps:
 
 1. Image cropping and resizing to a low resolution;
-2. Color quantization and mapping to a restricted color palette, plus color limit with dithering;
+2. Master palette color quantization and mapping to a restricted color palette, plus color limit with dithering;
 3. Nearest-neighbor resizing to a high resolution, to make pixels look good, also enabling non-square pixels.
 
 
-**Note:** This application does not claim to achieve a perfect emulation of old hardware, but it should hopefully attain sufficiently good results for the intended nostalgia kick.
+**Note:** This application does not claim to achieve a perfect emulation of old hardware,
+but it should hopefully attain sufficiently good results for the intended nostalgia kick.
 
 ## License
 

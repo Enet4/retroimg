@@ -28,7 +28,7 @@ pub struct App {
     standard: ColorStandard,
 
     /// Crop the input image to the rectangle (left, top, width, height)
-    #[structopt(short = "C", long = "crop", parse(try_from_str = "parse_rect"))]
+    #[structopt(short = "C", long = "crop", parse(try_from_str = parse_rect))]
     crop: Option<(u16, u16, u16, u16)>,
 
     /// Resolution to resize the image into before color reduction
@@ -37,7 +37,7 @@ pub struct App {
         short = "R",
         long = "res",
         default_value = "427x200",
-        parse(try_from_str = "parse_resolution")
+        parse(try_from_str = parse_resolution)
     )]
     resolution: (u16, u16),
 
@@ -65,12 +65,12 @@ struct OutSizeOpts {
         short = "S",
         long = "out-size",
         default_value = "1920x1080",
-        parse(try_from_str = "parse_resolution")
+        parse(try_from_str = parse_resolution),
     )]
     resolution: (u32, u32),
 
-    /// Pixel ratio
-    #[structopt(short = "r", long = "pixel-ratio", parse(try_from_str = "parse_ratio"))]
+    /// Pixel ratio (format `w:h`)
+    #[structopt(short = "r", long = "pixel-ratio", parse(try_from_str = parse_ratio))]
     pixel_ratio: Option<Ratio<u32>>,
 
     /// Output image width (defined separately)
@@ -82,8 +82,8 @@ struct OutSizeOpts {
     height: Option<u32>,
 }
 
-/// Options for the kind of color palette to be simulated. This doesn't affect
-/// the image's resolution.
+/// Options for the kind of color palette to be simulated.
+/// This doesn't affect the image's resolution.
 #[derive(Debug)]
 pub enum ColorStandard {
     /// True color 24-bit RGB (8 bits per channel)
@@ -186,7 +186,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         verbose,
     } = App::from_args();
 
-    let mut img = image::open(input)?.to_rgb();
+    let mut img = image::open(input)?.to_rgb8();
 
     if let Some((left, top, width, height)) = crop {
         img = lib::crop(
@@ -206,9 +206,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (out_width, out_height) = match (pixel_ratio, out_width, out_height) {
         (None, None, None) => (res_out_width, res_out_height),
-        _ => {
-            lib::resolve_output_resolution(in_width, in_height, out_width, out_height, pixel_ratio)
-        }
+        _ => lib::resolve_output_resolution(in_width, in_height, out_width, out_height, pixel_ratio).unwrap(),
     };
 
     if verbose {

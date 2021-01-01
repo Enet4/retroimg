@@ -1,5 +1,5 @@
-use image::imageops::resize;
-use image::{FilterType, GenericImage, ImageBuffer, Pixel, RgbImage};
+use image::imageops::{FilterType, resize};
+use image::{GenericImage, ImageBuffer, Pixel, RgbImage};
 use num::rational::Ratio;
 use snafu::Snafu;
 
@@ -37,9 +37,11 @@ where
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub))]
 pub enum ResolutionError {
-    #[snafu(display("not enough components to resolve output resolution"))]
+    /// not enough components to resolve output resolution
     Non,
-    #[snafu(display("'pixel_ratio', 'width' and 'height' cannot be used together"))]
+    /// 'width' or 'height' are required alongside 'pixel_ratio'
+    RatioWithoutSide,
+    /// 'pixel_ratio', 'width' and 'height' cannot be used together
     TooMany,
 }
 
@@ -49,10 +51,10 @@ pub fn resolve_output_resolution(
     output_width: Option<u32>,
     output_height: Option<u32>,
     pixel_ratio: Option<Ratio<u32>>,
-) -> (u32, u32) {
+) -> Result<(u32, u32), ResolutionError> {
     match (pixel_ratio, output_width, output_height) {
-        (None, None, None) => panic!("Not enough output components"),
-        (None, Some(w), Some(h)) => (w, h),
+        (None, None, None) => Non.fail(),
+        (None, Some(w), Some(h)) => Ok((w, h)),
         (Some(r), None, Some(h)) => {
             /*
             Rule of proportions... with a twist.
@@ -84,29 +86,25 @@ pub fn resolve_output_resolution(
                = oW * iH / (iW * r)
             */
             let w = ((r * h * width) / height).round().to_integer();
-            (w, h)
+            Ok((w, h))
         }
         (Some(r), Some(w), None) => {
             let h = (Ratio::from_integer(w) * height / (r * width))
                 .round()
                 .to_integer();
-            (w, h)
+            Ok((w, h))
         }
         (None, None, Some(h)) => {
             let ir = Ratio::new(width, height);
             let w = (Ratio::from_integer(h) * ir).round().to_integer();
-            (w, h)
+            Ok((w, h))
         }
         (None, Some(w), None) => {
             let ir = Ratio::new(width, height);
             let h = (Ratio::from_integer(w) / ir).round().to_integer();
-            (w, h)
+            Ok((w, h))
         }
-        (Some(_r), None, None) => {
-            panic!("'width' or 'height' are required alongside 'pixel_ratio'.")
-        }
-        (Some(_r), Some(_w), Some(_h)) => {
-            panic!("The arguments 'pixel_ratio', 'width' and 'height' cannot be used together.")
-        }
+        (Some(_r), None, None) => RatioWithoutSide.fail(),
+        (Some(_r), Some(_w), Some(_h)) => TooMany.fail(),
     }
 }
