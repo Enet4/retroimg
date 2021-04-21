@@ -221,9 +221,9 @@ impl ColorMapper for Vga18BitMapper {
     fn convert_color(&self, pixel: Color) -> Color {
         let Color { r, g, b, a } = pixel;
         Color {
-            r: (r.saturating_add(2)) & !0x03,
-            g: (g.saturating_add(2)) & !0x03,
-            b: (b.saturating_add(2)) & !0x03,
+            r: (r & !0x03) | r >> 6,
+            g: (g & !0x03) | g >> 6,
+            b: (b & !0x03) | b >> 6,
             a,
         }
     }
@@ -242,9 +242,9 @@ impl ColorMapper for Vga16BitMapper {
     fn convert_color(&self, pixel: Color) -> Color {
         let Color { r, g, b, a } = pixel;
         Color {
-            r: (r.saturating_add(2)) & !0x07,
-            g: (g.saturating_add(2)) & !0x03,
-            b: (b.saturating_add(2)) & !0x07,
+            r: (r & !0x07) | r >> 5,
+            g: (g & !0x03) | g >> 6,
+            b: (b & !0x07) | b >> 5,
             a,
         }
     }
