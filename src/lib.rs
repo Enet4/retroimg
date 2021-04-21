@@ -1,4 +1,4 @@
-use image::imageops::{FilterType, resize};
+use image::imageops::{resize, FilterType};
 use image::{GenericImage, ImageBuffer, Pixel, RgbImage};
 use num::rational::Ratio;
 use snafu::Snafu;

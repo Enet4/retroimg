@@ -206,7 +206,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (out_width, out_height) = match (pixel_ratio, out_width, out_height) {
         (None, None, None) => (res_out_width, res_out_height),
-        _ => lib::resolve_output_resolution(in_width, in_height, out_width, out_height, pixel_ratio).unwrap(),
+        _ => {
+            lib::resolve_output_resolution(in_width, in_height, out_width, out_height, pixel_ratio)
+                .unwrap()
+        }
     };
 
     if verbose {

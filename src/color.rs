@@ -68,7 +68,11 @@ fn color_median(colors: &[Color]) -> Color {
 /// Color depth image converter.
 pub trait ColorDepth {
     /// Convert and retrieve the loss from converting an image.
-    fn convert_image_with_loss(&self, image: &RgbImage, num_colors: Option<u32>) -> (Vec<Color>, u64);
+    fn convert_image_with_loss(
+        &self,
+        image: &RgbImage,
+        num_colors: Option<u32>,
+    ) -> (Vec<Color>, u64);
 
     /// Convert an RGB image to this color depth.
     fn convert_image(&self, image: &RgbImage, num_colors: Option<u32>) -> Vec<Color> {
@@ -84,7 +88,11 @@ pub trait ColorDepth {
 }
 
 impl<'a, T: ColorDepth> ColorDepth for &'a T {
-    fn convert_image_with_loss(&self, image: &RgbImage, num_colors: Option<u32>) -> (Vec<Color>, u64) {
+    fn convert_image_with_loss(
+        &self,
+        image: &RgbImage,
+        num_colors: Option<u32>,
+    ) -> (Vec<Color>, u64) {
         (**self).convert_image_with_loss(image, num_colors)
     }
 
@@ -103,7 +111,7 @@ impl<'a, T: ColorDepth> ColorDepth for &'a T {
 
 pub trait ColorMapper {
     /// Convert a single color
-    fn convert_color(&self, c: Color) -> Color; 
+    fn convert_color(&self, c: Color) -> Color;
 
     /// Calculate the L1 loss of converting a single color
     fn l1_loss(&self, pixel: Color) -> u64 {
@@ -148,7 +156,11 @@ impl<M> ColorDepth for MappingColorDepth<M>
 where
     M: ColorMapper,
 {
-    fn convert_image_with_loss(&self, image: &RgbImage, num_colors: Option<u32>) -> (Vec<Color>, u64) {
+    fn convert_image_with_loss(
+        &self,
+        image: &RgbImage,
+        num_colors: Option<u32>,
+    ) -> (Vec<Color>, u64) {
         let original = image
             .pixels()
             .map(|&p| {
@@ -163,16 +175,16 @@ where
                 self.0.convert_color(Color { r, g, b, a: 255 })
             })
             .collect_vec();
-        
+
         // optimize palette and dither
         let converted_pixels = if let Some(num_colors) = num_colors {
             let mut palette = build_palette(&pixels, num_colors);
-    
+
             // reduce palette's color depth
             for c in &mut palette {
                 *c = self.convert_color(*c);
             }
-    
+
             let colorspace = SimpleColorSpace::default();
             let ditherer = FloydSteinberg::new();
             let remapper = Remapper::new(&palette, &colorspace, &ditherer);
@@ -181,7 +193,7 @@ where
                 .into_iter()
                 .map(|i| palette[i as usize])
                 .collect_vec();
-            
+
             pixels
         } else {
             pixels
@@ -213,7 +225,6 @@ impl TrueColor24Bit {
     }
 }
 
-
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Vga18BitMapper;
 
@@ -229,9 +240,7 @@ impl ColorMapper for Vga18BitMapper {
     }
 
     fn l1_loss(&self, pixel: Color) -> u64 {
-        u64::from(pixel.r & 0x03) +
-        u64::from(pixel.g & 0x03) +
-        u64::from(pixel.b & 0x03)
+        u64::from(pixel.r & 0x03) + u64::from(pixel.g & 0x03) + u64::from(pixel.b & 0x03)
     }
 }
 
@@ -306,7 +315,11 @@ impl<T> ColorDepth for FixedPalette<T>
 where
     T: AsRef<[[u8; 3]]>,
 {
-    fn convert_image_with_loss(&self, image: &RgbImage, num_colors: Option<u32>) -> (Vec<Color>, u64) {
+    fn convert_image_with_loss(
+        &self,
+        image: &RgbImage,
+        num_colors: Option<u32>,
+    ) -> (Vec<Color>, u64) {
         let original = image
             .pixels()
             .map(|&p| {
@@ -314,16 +327,16 @@ where
                 Color { r, g, b, a: 255 }
             })
             .collect_vec();
-        
+
         // optimize palette and dither
         let converted_pixels = if let Some(num_colors) = num_colors {
             let mut palette = build_palette(&original, num_colors);
-    
+
             // reduce palette's color depth
             for c in &mut palette {
                 *c = self.convert_color(*c);
             }
-    
+
             let colorspace = SimpleColorSpace::default();
             let ditherer = FloydSteinberg::new();
             let remapper = Remapper::new(&palette, &colorspace, &ditherer);
@@ -332,7 +345,7 @@ where
                 .into_iter()
                 .map(|i| palette[i as usize])
                 .collect_vec();
-            
+
             pixels
         } else {
             original.clone()
@@ -422,7 +435,11 @@ where
     B: AsRef<[[u8; 3]]>,
     F: AsRef<[[u8; 3]]>,
 {
-    fn convert_image_with_loss(&self, image: &RgbImage, num_colors: Option<u32>) -> (Vec<Color>, u64) {
+    fn convert_image_with_loss(
+        &self,
+        image: &RgbImage,
+        num_colors: Option<u32>,
+    ) -> (Vec<Color>, u64) {
         // first try to identify the background color
         let bkg_color = self.background_color(image);
         let bkg_color = self.convert_color_back(bkg_color);
@@ -439,16 +456,16 @@ where
                 Color { r, g, b, a: 255 }
             })
             .collect_vec();
-        
+
         // optimize palette and dither
         let converted_pixels = if let Some(num_colors) = num_colors {
             let mut palette = build_palette(&original, num_colors);
-    
+
             // reduce palette's color depth
             for c in &mut palette {
                 *c = fixed.convert_color(*c);
             }
-    
+
             let colorspace = SimpleColorSpace::default();
             let ditherer = FloydSteinberg::new();
             let remapper = Remapper::new(&palette, &colorspace, &ditherer);
@@ -457,7 +474,7 @@ where
                 .into_iter()
                 .map(|i| palette[i as usize])
                 .collect_vec();
-            
+
             pixels
         } else {
             original.clone()
@@ -474,24 +491,29 @@ pub struct BestPalette<C>(C);
 
 impl<C, P> ColorDepth for BestPalette<C>
 where
-    C: std::ops::Deref<Target=[P]>,
+    C: std::ops::Deref<Target = [P]>,
     P: ColorDepth,
 {
-    fn convert_image_with_loss(&self, image: &RgbImage, num_colors: Option<u32>) -> (Vec<Color>, u64) {
-        self.0.into_iter()
+    fn convert_image_with_loss(
+        &self,
+        image: &RgbImage,
+        num_colors: Option<u32>,
+    ) -> (Vec<Color>, u64) {
+        self.0
+            .into_iter()
             .map(|cd| cd.convert_image_with_loss(image, num_colors))
             .min_by_key(|(_pixels, loss)| *loss)
             .unwrap()
     }
 }
 
-pub fn colors_to_image<I>(width: u32, height: u32, pixels: I) -> RgbImage 
+pub fn colors_to_image<I>(width: u32, height: u32, pixels: I) -> RgbImage
 where
     I: IntoIterator<Item = Color>,
 {
-    let pixels = pixels.into_iter()
-            .flat_map(|Color { r, g, b, .. }| value_iter![r, g, b])
-            .collect_vec();
-    ImageBuffer::from_raw(width, height, pixels)
-        .expect("there should be enough pixels")
+    let pixels = pixels
+        .into_iter()
+        .flat_map(|Color { r, g, b, .. }| value_iter![r, g, b])
+        .collect_vec();
+    ImageBuffer::from_raw(width, height, pixels).expect("there should be enough pixels")
 }

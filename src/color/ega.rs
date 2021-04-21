@@ -5,11 +5,11 @@ pub static PALETTE_EGA_6BIT: FixedPalette<&[[u8; 3]]> = FixedPalette(EGA_6BIT);
 
 /// 64 color palette established by the full-color EGA standard.
 pub static EGA_6BIT: &[[u8; 3]] = &[
-    [0, 0, 0], // CGA 0
-    [0, 0, 0xAA], // CGA 1
-    [0, 0xAA, 0], // CGA 2
+    [0, 0, 0],       // CGA 0
+    [0, 0, 0xAA],    // CGA 1
+    [0, 0xAA, 0],    // CGA 2
     [0, 0xAA, 0xAA], // CGA 3
-    [0xAA, 0, 0], // CGA 4
+    [0xAA, 0, 0],    // CGA 4
     [0xAA, 0, 0xAA], // CGA 5
     [0xAA, 0xAA, 0],
     [0xAA, 0xAA, 0xAA], // CGA 7
