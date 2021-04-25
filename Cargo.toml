@@ -7,6 +7,9 @@ categories = ["command-line-utilities"]
 keywords = ["cli", "image", "retro", "vga", "cga", "ega"]
 exclude = ["outputs/*", "samples/*"]
 
+[features]
+l1 = []
+
 [lib]
 name = "retroimg"
 path = "src/lib.rs"
