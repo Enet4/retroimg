@@ -7,7 +7,7 @@ license = "Apache-2.0 OR MIT"
 repository = "https://github.com/Enet4/retroimg"
 edition = "2018"
 categories = ["command-line-utilities"]
-keywords = ["cli", "image", "retro", "vga", "cga", "ega"]
+keywords = ["cli", "image", "retro", "vga", "cga"]
 exclude = ["outputs/*", "samples/*"]
 
 [features]
