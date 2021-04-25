@@ -1,6 +1,6 @@
 [package]
 name = "retroimg"
-version = "0.1.0"
+version = "0.1.1-alpha.0"
 authors = ["Eduardo Pinho <enet4mikeenet@gmail.com>"]
 description = "Convert images to look like in retro IBM hardware"
 license = "Apache-2.0 OR MIT"
