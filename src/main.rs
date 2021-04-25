@@ -6,7 +6,7 @@ use structopt::StructOpt;
 
 extern crate retroimg as lib;
 
-/// Retro effect to images
+/// Convert images to look like in retro IBM hardware
 #[derive(Debug, StructOpt)]
 pub struct App {
     /// Image file
