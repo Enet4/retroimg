@@ -3,6 +3,7 @@ use exoquant::optimizer::{KMeans, Optimizer};
 use exoquant::{Color, Histogram, Quantizer, Remapper, SimpleColorSpace};
 use image::{ImageBuffer, Rgb, RgbImage};
 use itertools::Itertools;
+use num::integer::Roots;
 
 pub mod cga;
 pub mod ega;
@@ -21,6 +22,26 @@ macro_rules! value_iter {
         std::iter::once($v)
     };
 }
+
+/// calculate the difference between 2 colors
+/// using the default loss
+fn color_diff(c1: Color, c2: Color) -> u64 {
+    if cfg!(feature = "l1") {
+        color_diff_l1(c1, c2)
+    } else {
+        color_diff_l2(c1, c2)
+    }
+}
+
+/// calculate the difference between 2 images
+/// using the default loss
+fn image_diff(a: &[Color], b: &[Color]) -> u64 {
+    assert_eq!(a.len(), b.len());
+    Iterator::zip(a.iter(), b.iter())
+        .map(|(a, b)| color_diff(*a, *b))
+        .sum()
+}
+
 
 /// calculate the L1 difference between 2 colors
 fn color_diff_l1(c1: Color, c2: Color) -> u64 {
@@ -42,12 +63,28 @@ fn color_diff_l1(c1: Color, c2: Color) -> u64 {
     (r1 - r2).abs() as u64 + (g1 - g2).abs() as u64 + (b1 - b2).abs() as u64
 }
 
-/// calculate the L1 difference between 2 images
-fn image_diff_l1(a: &[Color], b: &[Color]) -> u64 {
-    assert_eq!(a.len(), b.len());
-    Iterator::zip(a.iter(), b.iter())
-        .map(|(a, b)| color_diff_l1(*a, *b))
-        .sum()
+/// calculate the L2 difference between 2 colors
+fn color_diff_l2(c1: Color, c2: Color) -> u64 {
+    let Color {
+        r: r1,
+        g: g1,
+        b: b1,
+        ..
+    } = c1;
+    let Color {
+        r: r2,
+        g: g2,
+        b: b2,
+        ..
+    } = c2;
+    let (r1, r2) = (i64::from(r1), i64::from(r2));
+    let (g1, g2) = (i64::from(g1), i64::from(g2));
+    let (b1, b2) = (i64::from(b1), i64::from(b2));
+    let dr = (r1 - r2) as u64;
+    let dg = (g1 - g2) as u64;
+    let db = (b1 - b2) as u64;
+
+    (dr * dr + dg * dg + db * db).sqrt()
 }
 
 /// calculate the median RGB color of the given buffer
@@ -112,21 +149,11 @@ impl<'a, T: ColorDepth> ColorDepth for &'a T {
 pub trait ColorMapper {
     /// Convert a single color
     fn convert_color(&self, c: Color) -> Color;
-
-    /// Calculate the L1 loss of converting a single color
-    fn l1_loss(&self, pixel: Color) -> u64 {
-        let converted = self.convert_color(pixel);
-        color_diff_l1(pixel, converted)
-    }
 }
 
 impl<'a, T: ColorMapper> ColorMapper for &'a T {
     fn convert_color(&self, c: Color) -> Color {
         (**self).convert_color(c)
-    }
-
-    fn l1_loss(&self, pixel: Color) -> u64 {
-        (**self).l1_loss(pixel)
     }
 }
 
@@ -145,10 +172,6 @@ where
 {
     fn convert_color(&self, c: Color) -> Color {
         self.0.convert_color(c)
-    }
-
-    fn l1_loss(&self, pixel: Color) -> u64 {
-        self.0.l1_loss(pixel)
     }
 }
 
@@ -196,7 +219,7 @@ where
         } else {
             pixels
         };
-        let loss = image_diff_l1(&original, &converted_pixels);
+        let loss = image_diff(&original, &converted_pixels);
         (converted_pixels, loss)
     }
 }
@@ -208,10 +231,6 @@ pub struct TrueColor24BitMapper;
 impl ColorMapper for TrueColor24BitMapper {
     fn convert_color(&self, pixel: Color) -> Color {
         pixel
-    }
-
-    fn l1_loss(&self, _: Color) -> u64 {
-        0
     }
 }
 
@@ -235,10 +254,6 @@ impl ColorMapper for Vga18BitMapper {
             b: (b & !0x03) | b >> 6,
             a,
         }
-    }
-
-    fn l1_loss(&self, pixel: Color) -> u64 {
-        u64::from(pixel.r & 0x03) + u64::from(pixel.g & 0x03) + u64::from(pixel.b & 0x03)
     }
 }
 
@@ -345,7 +360,7 @@ where
         } else {
             original.clone()
         };
-        let loss = image_diff_l1(&original, &converted_pixels);
+        let loss = image_diff(&original, &converted_pixels);
         (converted_pixels, loss)
     }
 }
@@ -471,7 +486,7 @@ where
         } else {
             original.clone()
         };
-        let loss = image_diff_l1(&original, &converted_pixels);
+        let loss = image_diff(&original, &converted_pixels);
 
         (converted_pixels, loss)
     }
