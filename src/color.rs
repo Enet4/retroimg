@@ -52,12 +52,12 @@ fn image_diff_l1(a: &[Color], b: &[Color]) -> u64 {
 
 /// calculate the median RGB color of the given buffer
 fn color_median(colors: &[Color]) -> Color {
-    let mut colors_r = colors.into_iter().map(|c| c.r).collect_vec();
-    let mut colors_g = colors.into_iter().map(|c| c.g).collect_vec();
-    let mut colors_b = colors.into_iter().map(|c| c.b).collect_vec();
-    colors_r.sort();
-    colors_g.sort();
-    colors_b.sort();
+    let mut colors_r = colors.iter().map(|c| c.r).collect_vec();
+    let mut colors_g = colors.iter().map(|c| c.g).collect_vec();
+    let mut colors_b = colors.iter().map(|c| c.b).collect_vec();
+    colors_r.sort_unstable();
+    colors_g.sort_unstable();
+    colors_b.sort_unstable();
     let r = colors_r[colors_r.len() / 2];
     let g = colors_r[colors_g.len() / 2];
     let b = colors_r[colors_b.len() / 2];
@@ -189,12 +189,10 @@ where
             let ditherer = FloydSteinberg::new();
             let remapper = Remapper::new(&palette, &colorspace, &ditherer);
             let indexed_data = remapper.remap(&pixels, image.width() as usize);
-            let pixels = indexed_data
+            indexed_data
                 .into_iter()
                 .map(|i| palette[i as usize])
-                .collect_vec();
-
-            pixels
+                .collect_vec()
         } else {
             pixels
         };
@@ -294,7 +292,7 @@ where
             a: _,
         } = pixel;
         let (sr, sg, sb) = (i32::from(sr), i32::from(sg), i32::from(sb));
-        let [r, g, b] = self
+        let [r, g, b] = *self
             .0
             .as_ref()
             .iter()
@@ -305,8 +303,7 @@ where
                 let rb = sb - pb;
                 rd * rd + rg * rg + rb * rb
             })
-            .unwrap()
-            .clone();
+            .unwrap();
         Color { r, g, b, a: 255 }
     }
 }
@@ -341,12 +338,10 @@ where
             let ditherer = FloydSteinberg::new();
             let remapper = Remapper::new(&palette, &colorspace, &ditherer);
             let indexed_data = remapper.remap(&original, image.width() as usize);
-            let pixels = indexed_data
+            indexed_data
                 .into_iter()
                 .map(|i| palette[i as usize])
-                .collect_vec();
-
-            pixels
+                .collect_vec()
         } else {
             original.clone()
         };
@@ -397,7 +392,7 @@ where
             a: _,
         } = pixel;
         let (sr, sg, sb) = (i32::from(sr), i32::from(sg), i32::from(sb));
-        let [r, g, b] = palette
+        let [r, g, b] = *palette
             .as_ref()
             .iter()
             .min_by_key(|[pr, pg, pb]| {
@@ -407,8 +402,7 @@ where
                 let rb = sb - pb;
                 rd * rd + rg * rg + rb * rb
             })
-            .unwrap()
-            .clone();
+            .unwrap();
         Color { r, g, b, a: 255 }
     }
 
@@ -470,12 +464,10 @@ where
             let ditherer = FloydSteinberg::new();
             let remapper = Remapper::new(&palette, &colorspace, &ditherer);
             let indexed_data = remapper.remap(&original, image.width() as usize);
-            let pixels = indexed_data
+            indexed_data
                 .into_iter()
                 .map(|i| palette[i as usize])
-                .collect_vec();
-
-            pixels
+                .collect_vec()
         } else {
             original.clone()
         };
@@ -500,7 +492,7 @@ where
         num_colors: Option<u32>,
     ) -> (Vec<Color>, u64) {
         self.0
-            .into_iter()
+            .iter()
             .map(|cd| cd.convert_image_with_loss(image, num_colors))
             .min_by_key(|(_pixels, loss)| *loss)
             .unwrap()

@@ -1,4 +1,3 @@
-use image;
 use num::integer::Integer;
 use num::rational::Ratio;
 use std::path::PathBuf;
