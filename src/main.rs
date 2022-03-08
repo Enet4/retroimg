@@ -207,7 +207,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         (None, None, None) => (res_out_width, res_out_height),
         _ => {
             lib::resolve_output_resolution(in_width, in_height, out_width, out_height, pixel_ratio)
-                .unwrap()
+                .unwrap_or_else(|e| {
+                    eprintln!("Error: {}", e);
+                    std::process::exit(-1);
+                })
         }
     };
 
