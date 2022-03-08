@@ -53,7 +53,7 @@ pub fn resolve_output_resolution(
     pixel_ratio: Option<Ratio<u32>>,
 ) -> Result<(u32, u32), ResolutionError> {
     match (pixel_ratio, output_width, output_height) {
-        (None, None, None) => Non.fail(),
+        (None, None, None) => NonSnafu.fail(),
         (None, Some(w), Some(h)) => Ok((w, h)),
         (Some(r), None, Some(h)) => {
             /*
@@ -104,7 +104,7 @@ pub fn resolve_output_resolution(
             let h = (Ratio::from_integer(w) / ir).round().to_integer();
             Ok((w, h))
         }
-        (Some(_r), None, None) => RatioWithoutSide.fail(),
-        (Some(_r), Some(_w), Some(_h)) => TooMany.fail(),
+        (Some(_r), None, None) => RatioWithoutSideSnafu.fail(),
+        (Some(_r), Some(_w), Some(_h)) => TooManySnafu.fail(),
     }
 }
