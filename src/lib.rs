@@ -19,8 +19,7 @@ where
 }
 
 pub fn crop(mut image: RgbImage, left: u32, top: u32, width: u32, height: u32) -> RgbImage {
-    image::imageops::crop(&mut image, left, top, width, height);
-    image
+    image::imageops::crop(&mut image, left, top, width, height).to_image()
 }
 
 pub fn expand<I: 'static>(
@@ -106,5 +105,47 @@ pub fn resolve_output_resolution(
         }
         (Some(_r), None, None) => RatioWithoutSideSnafu.fail(),
         (Some(_r), Some(_w), Some(_h)) => TooManySnafu.fail(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_crop() {
+        // create blank image
+        let mut image = image::ImageBuffer::new(100, 100);
+
+        // draw a red horizontal line
+        for x in 0..100 {
+            image.put_pixel(x, 50, image::Rgb([255, 0, 0]));
+        }
+
+        // draw a green vertical line
+        for y in 0..100 {
+            image.put_pixel(20, y, image::Rgb([0, 255, 0]));
+        }
+
+        // draw yellow in the intersection
+        image.put_pixel(20, 50, image::Rgb([255, 255, 0]));
+
+        // crop to the middle of the image
+        let cropped = super::crop(image, 20, 50, 80, 50);
+
+        // check that the cropped image is the right size
+        assert_eq!(cropped.width(), 80, "unexpected width");
+        assert_eq!(cropped.height(), 50, "unexpected height");
+
+        // check that the cropped image is the right color
+        for (x, y, pixel) in cropped.enumerate_pixels() {
+            let expected_color = match (x, y) {
+                (0, 0) => image::Rgb([255, 255, 0]),
+                (0, _) => image::Rgb([0, 255, 0]),
+                (_, 0) => image::Rgb([255, 0, 0]),
+                _ => image::Rgb([0, 0, 0]),
+            };
+            assert_eq!(pixel, &expected_color);
+        }
+
     }
 }
