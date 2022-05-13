@@ -96,6 +96,8 @@ pub enum ColorStandard {
     /// Mode 4 of CGA, high intensity of sub-palette 1:
     /// white, cyan, magenta, and one arbitrary back color
     CgaMode4High1,
+    /// Monochrome, black and white
+    BlackWhite,
     /// All 16 colors from the CGA palette
     FullCga,
     /// All 64 colors from the EGA palette
@@ -113,6 +115,7 @@ impl FromStr for ColorStandard {
             "cgamode4high1" => Ok(ColorStandard::CgaMode4High1),
             "fullcga" => Ok(ColorStandard::FullCga),
             "ega" => Ok(ColorStandard::FullEga),
+            "bw" => Ok(ColorStandard::BlackWhite),
             _ => Err("no such color standard"),
         }
     }
@@ -230,6 +233,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ColorStandard::FullCga => Box::new(lib::color::cga::PALETTE_CGA_4BIT),
         ColorStandard::CgaMode4 => Box::new(lib::color::cga::PALETTE_CGA_MODE4),
         ColorStandard::CgaMode4High1 => Box::new(lib::color::cga::PALETTE_CGA_MODE4_1_HIGH),
+        ColorStandard::BlackWhite => Box::new(lib::color::PALETTE_BW_1BIT),
     };
 
     let colorbuffer = depth.convert_image(&img, num_colors);
