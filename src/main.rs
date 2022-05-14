@@ -1,5 +1,5 @@
-use num::integer::Integer;
-use num::rational::Ratio;
+use num_integer::Integer;
+use num_rational::Ratio;
 use std::path::PathBuf;
 use std::str::FromStr;
 use clap::Parser;

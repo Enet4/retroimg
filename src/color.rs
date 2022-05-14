@@ -3,7 +3,7 @@ use exoquant::optimizer::{KMeans, Optimizer};
 use exoquant::{Color, Histogram, Quantizer, Remapper, SimpleColorSpace};
 use image::{ImageBuffer, Rgb, RgbImage};
 use itertools::Itertools;
-use num::integer::Roots;
+use num_integer::Roots;
 
 pub mod cga;
 pub mod ega;

@@ -12,5 +12,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Build
-      run: cargo test --verbose
+    - name: Build & test library
+      run: cargo test --lib
+    - name: Build binary
+      run: cargo build --bins
