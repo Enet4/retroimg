@@ -42,7 +42,6 @@ fn image_diff(a: &[Color], b: &[Color]) -> u64 {
         .sum()
 }
 
-
 /// calculate the L1 difference between 2 colors
 fn color_diff_l1(c1: Color, c2: Color) -> u64 {
     let Color {
@@ -524,3 +523,9 @@ where
         .collect_vec();
     ImageBuffer::from_raw(width, height, pixels).expect("there should be enough pixels")
 }
+
+/// 64 color palette established by the full-color EGA standard.
+pub static PALETTE_BW_1BIT: FixedPalette<&[[u8; 3]]> = FixedPalette(BW_1BIT);
+
+/// 64 color palette established by the full-color EGA standard.
+pub static BW_1BIT: &[[u8; 3]] = &[[0, 0, 0], [0xFF, 0xFF, 0xFF]];
