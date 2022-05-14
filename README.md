@@ -18,35 +18,37 @@ The full image processing pipeline is composed of the following steps:
 **Note:** This application does not claim to achieve a perfect emulation of old hardware,
 but it should hopefully attain sufficiently good results for the intended nostalgia kick.
 
-## Using
+## Using the tool
 
 The main options are:
- - `-s` | `--standard`: the video graphics standard to emulate.
+
+- `-s` | `--standard`: the video graphics standard to emulate.
    This only affects the colors used, not the image resolution.
    Possible options:
-    - `cga` or `cgamode4`: CGA in mode 4, attempts to choose
-      the best sub-palette and background color
-    - `fullcga`: all 16 colors of the CGA master palette
-    - `cgamode4high1`: CGA in mode 4, always subpalette 1 of high intensity
-      (black, magenta, white, black)
-    - `ega`: all 64 colors from the EGA master palette
-    - `16bit`: 16-bit color depth (4-5-4 RGB)
-    - `vga` (default) or `18bit`: 18-bit master palette
-    - `true` or `24bit`: 24-bit RGB color depth
- - `-R WxH`: the resolution to resize the image into.
- - `-S WxH`: the full image output size, resized from the previous option.
+  - `bw`: 1 bit, black and white
+  - `cga` or `cgamode4`: CGA in mode 4, attempts to choose
+    the best sub-palette and background color
+  - `fullcga`: all 16 colors of the CGA master palette
+  - `cgamode4high1`: CGA in mode 4, always subpalette 1 of high intensity
+    (black, magenta, white, black)
+  - `ega`: all 64 colors from the EGA master palette
+  - `16bit`: 16-bit color depth (4-5-4 RGB)
+  - `vga` (default) or `18bit`: 18-bit master palette
+  - `true` or `24bit`: 24-bit RGB color depth
+- `-R WxH`: the resolution to resize the image into.
+- `-S WxH`: the full image output size, resized from the previous option.
 
 To convert an image to look like it was presented in VGA mode 13h,
 with non-square pixels:
 
-```
+```sh
 retroimg «IMAGEFILE» -s vga -R 320x200 -S 1440x1080 -o «out.png»
 ```
 
 This chooses the 256-color palette with the least loss.
 To use less colors (e.g. 100):
 
-```
+```sh
 retroimg «IMAGEFILE» -s vga -R 320x200 -S 1440x1080 -c 100 -o «out.png»
 ```
 
@@ -54,7 +56,7 @@ To choose an output width or height
 and let the program pick the other dimensions
 based on pixel ratio:
 
-```
+```sh
 retroimg «IMAGEFILE» -s vga -R 320x200 --height 1080 -r 4:5 -o «out.png»
 ```
 
@@ -63,12 +65,26 @@ meaning that it works best for images designed for this.
 
 The full list of options is presented via `retroimg -h` or `retroimg --help`.
 
+## Using the library
+
+The operations required for doing this
+are available as independent functions.
+
+To remove dependencies related with the command line application,
+exclude the default feature `cli`.
+
+```toml
+[dependencies.retroimg]
+version = "0.2"
+default-features = false
+```
+
 ## License
 
 Licensed under either of
 
-* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
-* MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 
