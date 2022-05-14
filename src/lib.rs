@@ -1,6 +1,6 @@
 use image::imageops::{resize, FilterType};
 use image::{GenericImage, ImageBuffer, Pixel, RgbImage};
-use num::rational::Ratio;
+use num_rational::Ratio;
 use snafu::Snafu;
 
 pub mod color;
