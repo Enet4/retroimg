@@ -75,7 +75,7 @@ exclude the default feature `cli`.
 
 ```toml
 [dependencies.retroimg]
-version = "0.2"
+version = "0.3"
 default-features = false
 ```
 
