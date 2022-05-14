@@ -11,6 +11,8 @@ keywords = ["cli", "image", "retro", "vga", "cga"]
 exclude = ["outputs/*", "samples/*"]
 
 [features]
+default = ["cli"]
+cli = ["clap"]
 l1 = []
 
 [lib]
@@ -20,13 +22,18 @@ path = "src/lib.rs"
 [[bin]]
 name = "retroimg"
 path = "src/main.rs"
+required-features = ["cli"]
 
 [dependencies]
 exoquant = "0.2.0"
 itertools = "0.10.0"
 snafu = "0.7.0"
-clap = { version = "3.1.18", features = ["derive"] }
 num-integer = "0.1.45"
+
+[dependencies.clap]
+version = "3.1.18"
+features = ["derive"]
+optional = true
 
 [dependencies.num-rational]
 version = "0.4.0"
