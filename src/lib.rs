@@ -146,6 +146,5 @@ mod tests {
             };
             assert_eq!(pixel, &expected_color);
         }
-
     }
 }

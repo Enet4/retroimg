@@ -73,10 +73,9 @@ pub static PALETTE_CGA_MODE4_0_LOW: CgaMod4Subpalette = BackForePalette(CGA_4BIT
 /// The default color is configurable to any of the colors in [`CGA_4BIT`].
 ///
 /// [`CGA_4BIT`]: ./static.CGA_4BIT.html
-pub static PALETTE_CGA_MODE4: BestPalette<&[CgaMod4Subpalette]> =
-    BestPalette(&[
-        BackForePalette(CGA_4BIT, CGA_MODE4_0_LOW),
-        BackForePalette(CGA_4BIT, CGA_MODE4_0_HIGH),
-        BackForePalette(CGA_4BIT, CGA_MODE4_1_LOW),
-        BackForePalette(CGA_4BIT, CGA_MODE4_1_HIGH),
-    ]);
+pub static PALETTE_CGA_MODE4: BestPalette<&[CgaMod4Subpalette]> = BestPalette(&[
+    BackForePalette(CGA_4BIT, CGA_MODE4_0_LOW),
+    BackForePalette(CGA_4BIT, CGA_MODE4_0_HIGH),
+    BackForePalette(CGA_4BIT, CGA_MODE4_1_LOW),
+    BackForePalette(CGA_4BIT, CGA_MODE4_1_HIGH),
+]);

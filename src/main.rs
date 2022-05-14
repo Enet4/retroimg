@@ -1,8 +1,8 @@
+use clap::Parser;
 use num_integer::Integer;
 use num_rational::Ratio;
 use std::path::PathBuf;
 use std::str::FromStr;
-use clap::Parser;
 
 use retroimg as lib;
 
