@@ -6,13 +6,20 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
+  build-linux:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - beta
     steps:
     - uses: actions/checkout@v3
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        cache: true
     - name: Build & test library
-      run: cargo test --lib
-    - name: Build binary
-      run: cargo build --bins
+      run: cargo test --lib --no-default-features
+    - name: Build & test binary
+      run: cargo test --bins --features cli
