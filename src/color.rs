@@ -83,7 +83,10 @@ fn color_diff_l2(c1: Color, c2: Color) -> u64 {
     let dg = (g1 - g2) as u64;
     let db = (b1 - b2) as u64;
 
-    (dr * dr + dg * dg + db * db).sqrt()
+    (dr.saturating_mul(dr)
+        .saturating_add(dg.saturating_mul(dg))
+        .saturating_add(db.saturating_mul(db)))
+    .sqrt()
 }
 
 /// calculate the median RGB color of the given buffer
