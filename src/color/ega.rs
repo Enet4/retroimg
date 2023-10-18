@@ -1,3 +1,4 @@
+//! EGA color palettes.
 use super::FixedPalette;
 
 /// 64 color palette established by the full-color EGA standard.

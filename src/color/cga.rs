@@ -1,3 +1,4 @@
+//! CGA color palettes.
 use super::{BackForePalette, BestPalette, FixedPalette};
 
 pub static CGA_4BIT: [[u8; 3]; 16] = [

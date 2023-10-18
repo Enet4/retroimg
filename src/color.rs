@@ -34,6 +34,8 @@ impl std::fmt::Display for LossAlgorithm {
     }
 }
 
+/// An error returned by a failed attempt at
+/// creating a [`LossAlgorithm`] from a string.
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub struct LossAlgorithmParseError;
 
@@ -198,6 +200,7 @@ impl<'a, T: ColorDepth> ColorDepth for &'a T {
     }
 }
 
+/// Trait for anything which maps one color to another.
 pub trait ColorMapper {
     /// Convert a single color
     fn convert_color(&self, c: Color) -> Color;
@@ -287,6 +290,7 @@ impl ColorMapper for TrueColor24BitMapper {
     }
 }
 
+/// A color depth implementation which retains all 24 bits per pixel.
 pub type TrueColor24Bit = MappingColorDepth<TrueColor24BitMapper>;
 
 impl TrueColor24Bit {
@@ -295,6 +299,8 @@ impl TrueColor24Bit {
     }
 }
 
+/// A color mapper that reduces sample precision to 6 bits per sample
+/// (18 bits per pixel).
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Vga18BitMapper;
 
@@ -310,6 +316,8 @@ impl ColorMapper for Vga18BitMapper {
     }
 }
 
+/// A color mapper that reduces pixel precision to 16 bits per pixel
+/// (5 bits for red, 6 bits for green, 6 bits for blue).
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Vga16BitMapper;
 
