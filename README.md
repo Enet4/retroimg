@@ -3,6 +3,9 @@
 [![Latest Version](https://img.shields.io/crates/v/retroimg.svg)](https://crates.io/crates/retroimg) [![Continuous integration status](https://github.com/Enet4/retroimg/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Enet4/retroimg/actions/workflows/ci.yml) [![dependency status](https://deps.rs/repo/github/Enet4/retroimg/status.svg)](https://deps.rs/repo/github/Enet4/retroimg)
 
 Convert images to appear to be reproduced on retro IBM hardware.
+It can also be used to reduce the color depth of existing images
+for use in DOS game development.
+
 
 | original (640x480, 24-bit RGB) | VGA (320x200, 256 colors, 4:5 pixels) | EGA (320x200, 16 colors, 4:5 pixels) | CGA (320x200, 4 colors + bkg) |
 |--------------------------------|---------------------------------------|--------------------------------------|----------------|
@@ -14,6 +17,8 @@ The full image processing pipeline is composed of the following steps:
 1. Image cropping and resizing to a low resolution;
 2. Master palette color quantization and mapping to a restricted color palette, plus color limit with dithering;
 3. Nearest-neighbor resizing to a high resolution, to make pixels look good, also enabling non-square pixels.
+
+Each step can be tweaked or skipped to suit your wishes.
 
 **Note:** This application does not claim to achieve a perfect emulation of old hardware,
 but it should hopefully attain sufficiently good results for the intended nostalgia kick.
@@ -37,6 +42,7 @@ The main options are:
   - `true` or `24bit`: 24-bit RGB color depth
 - `-R WxH`: the resolution to resize the image into.
 - `-S WxH`: the full image output size, resized from the previous option.
+- `-l L2` or `-l L2`: the color distance/loss algorithm to use for color palette selection
 
 To convert an image to look like it was presented in VGA mode 13h,
 with non-square pixels:

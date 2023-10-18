@@ -1,3 +1,8 @@
+//! Retroimg processing library.
+//! 
+//! Convert images to appear to be displayed on retro IBM hardware.
+//! It can also be used to reduce the color depth of existing images
+//! for use in DOS game development.
 use image::imageops::{resize, FilterType};
 use image::{GenericImage, ImageBuffer, Pixel, RgbImage};
 use num_rational::Ratio;

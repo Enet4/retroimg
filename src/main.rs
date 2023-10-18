@@ -1,4 +1,5 @@
 use clap::Parser;
+use lib::color::{ColorOptions, LossAlgorithm};
 use num_integer::Integer;
 use num_rational::Ratio;
 use std::path::PathBuf;
@@ -15,11 +16,7 @@ pub struct App {
     input: PathBuf,
 
     /// Output image file path
-    #[clap(
-        short = 'o',
-        long = "out",
-        default_value = "out.png",
-    )]
+    #[clap(short = 'o', long = "out", default_value = "out.png")]
     output: PathBuf,
 
     /// Color standard
@@ -49,6 +46,10 @@ pub struct App {
     /// Maximum number of simultaneous colors (emulates palette indexing)
     #[clap(short = 'c', long = "num-colors", default_value = "256")]
     num_colors: u16,
+
+    /// Color distance algorithm for loss calculation (L1 or L2)
+    #[clap(short = 'l', long = "loss", default_value = "L2")]
+    loss: LossAlgorithm,
 
     /// Print some info to stderr
     #[clap(short = 'v', long = "verbose")]
@@ -185,6 +186,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         standard,
         no_color_limit,
         num_colors,
+        loss,
         verbose,
     } = App::parse();
 
@@ -238,7 +240,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ColorStandard::BlackWhite => Box::new(lib::color::PALETTE_BW_1BIT),
     };
 
-    let colorbuffer = depth.convert_image(&img, num_colors);
+    let colorbuffer = depth.convert_image(&img, ColorOptions { num_colors, loss });
     let img = lib::color::colors_to_image(img.width(), img.height(), colorbuffer);
     let img = lib::expand(&img, out_width, out_height);
 
