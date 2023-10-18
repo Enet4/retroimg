@@ -35,10 +35,9 @@ pub struct App {
         name = "internal_resolution",
         short = 'R',
         long = "res",
-        default_value = "427x200",
         value_parser(parse_resolution::<u16>)
     )]
-    resolution: (u16, u16),
+    resolution: Option<(u16, u16)>,
 
     #[clap(flatten)]
     out_size: OutSizeOpts,
@@ -175,7 +174,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         input,
         output,
         crop,
-        resolution: (in_width, in_height),
+        resolution,
         out_size:
             OutSizeOpts {
                 resolution: (res_out_width, res_out_height),
@@ -200,8 +199,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             u32::from(height),
         );
     }
-    let in_width = u32::from(in_width);
-    let in_height = u32::from(in_height);
+
+    let (in_width, in_height) = match resolution {
+        Some((w, h)) => (w as u32, h as u32),
+        None => (img.width(), img.height()),
+    };
 
     if verbose {
         eprintln!("Emulated internal resolution: {} x {}", in_width, in_height);
