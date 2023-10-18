@@ -44,7 +44,7 @@ pub struct App {
     out_size: OutSizeOpts,
 
     /// Do not limit number of simultaneous colors (invalidates num_colors)
-    #[clap(long = "no-color-limit", conflicts_with = "num-colors")]
+    #[clap(long = "no-color-limit", conflicts_with = "num_colors")]
     no_color_limit: bool,
 
     /// Maximum number of simultaneous colors (emulates palette indexing)
@@ -52,7 +52,7 @@ pub struct App {
     num_colors: u16,
 
     /// Print some info to stderr
-    #[clap(short = 'V', long = "verbose")]
+    #[clap(short = 'v', long = "verbose")]
     verbose: bool,
 }
 
@@ -243,4 +243,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     img.save(output)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::App;
+    use clap::CommandFactory;
+
+    #[test]
+    fn verify_cli() {
+        App::command().debug_assert();
+    }
 }
