@@ -13,7 +13,6 @@ exclude = ["outputs/*", "samples/*"]
 [features]
 default = ["cli"]
 cli = ["clap"]
-l1 = []
 
 [lib]
 name = "retroimg"

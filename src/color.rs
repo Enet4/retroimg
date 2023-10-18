@@ -4,6 +4,7 @@ use exoquant::{Color, Histogram, Quantizer, Remapper, SimpleColorSpace};
 use image::{ImageBuffer, Rgb, RgbImage};
 use itertools::Itertools;
 use num_integer::Roots;
+use std::str::FromStr;
 
 pub mod cga;
 pub mod ega;
@@ -23,23 +24,76 @@ macro_rules! value_iter {
     };
 }
 
-/// calculate the difference between 2 colors
-/// using the default loss
-fn color_diff(c1: Color, c2: Color) -> u64 {
-    if cfg!(feature = "l1") {
-        color_diff_l1(c1, c2)
-    } else {
-        color_diff_l2(c1, c2)
+/// Enumeration of supported color distance algorithms
+/// for loss calculation.
+///
+/// The use of one algorithm or the other may affect slightly
+/// which palette colors are chosen,
+/// especially in modes such as CGA.
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+pub enum LossAlgorithm {
+    /// L2, Euclidean distance
+    #[default]
+    L2,
+    /// L1, Manhattan distance
+    L1,
+}
+
+impl std::fmt::Display for LossAlgorithm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LossAlgorithm::L1 => f.write_str("L1"),
+            LossAlgorithm::L2 => f.write_str("L2"),
+        }
     }
 }
 
-/// calculate the difference between 2 images
-/// using the default loss
-fn image_diff(a: &[Color], b: &[Color]) -> u64 {
-    assert_eq!(a.len(), b.len());
-    Iterator::zip(a.iter(), b.iter())
-        .map(|(a, b)| color_diff(*a, *b))
-        .sum()
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+pub struct LossAlgorithmParseError;
+
+impl std::fmt::Display for LossAlgorithmParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("invalid distance/loss algorithm, should be \"L1\" or \"L2\"")
+    }
+}
+
+impl std::error::Error for LossAlgorithmParseError {}
+
+impl FromStr for LossAlgorithm {
+    type Err = LossAlgorithmParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "L1" | "l1" => Ok(LossAlgorithm::L1),
+            "L2" | "l2" => Ok(LossAlgorithm::L2),
+            _ => Err(LossAlgorithmParseError),
+        }
+    }
+}
+
+impl LossAlgorithm {
+    /// calculate the difference between 2 colors
+    /// using the given loss algorithm
+    #[inline]
+    pub fn color_diff(self, c1: Color, c2: Color) -> u64 {
+        match self {
+            LossAlgorithm::L1 => color_diff_l1(c1, c2),
+            LossAlgorithm::L2 => color_diff_l2(c1, c2),
+        }
+    }
+
+    /// calculate the difference between 2 images
+    /// using the default loss
+    ///
+    /// # Panic
+    ///
+    /// Panics if the two slices of colors do not have the same length.
+    pub fn image_diff(self, a: &[Color], b: &[Color]) -> u64 {
+        assert_eq!(a.len(), b.len());
+        Iterator::zip(a.iter(), b.iter())
+            .map(|(a, b)| self.color_diff(*a, *b))
+            .sum()
+    }
 }
 
 /// calculate the L1 difference between 2 colors
@@ -104,25 +158,35 @@ fn color_median(colors: &[Color]) -> Color {
     Color { r, g, b, a: 255 }
 }
 
+/// The options for transforming an image to have a different color depth.
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+pub struct ColorOptions {
+    /// The maximum number of colors to admit.
+    /// `None` means no limit
+    pub num_colors: Option<u32>,
+
+    /// The distance algorithm to use for calculating the loss between colors.
+    ///
+    /// The default is L2.
+    pub loss: LossAlgorithm,
+}
+
 /// Color depth image converter.
 pub trait ColorDepth {
     /// Convert and retrieve the loss from converting an image.
-    fn convert_image_with_loss(
-        &self,
-        image: &RgbImage,
-        num_colors: Option<u32>,
-    ) -> (Vec<Color>, u64);
+    fn convert_image_with_loss(&self, image: &RgbImage, options: ColorOptions)
+        -> (Vec<Color>, u64);
 
     /// Convert an RGB image to this color depth.
-    fn convert_image(&self, image: &RgbImage, num_colors: Option<u32>) -> Vec<Color> {
-        self.convert_image_with_loss(image, num_colors).0
+    fn convert_image(&self, image: &RgbImage, options: ColorOptions) -> Vec<Color> {
+        self.convert_image_with_loss(image, options).0
     }
 
     /// Estimate the loss obtained from converting an image.
     /// For the best results, greater discrepancies should result in higher
     /// loss values.
-    fn loss(&self, image: &RgbImage, num_colors: Option<u32>) -> u64 {
-        self.convert_image_with_loss(image, num_colors).1
+    fn loss(&self, image: &RgbImage, options: ColorOptions) -> u64 {
+        self.convert_image_with_loss(image, options).1
     }
 }
 
@@ -130,21 +194,21 @@ impl<'a, T: ColorDepth> ColorDepth for &'a T {
     fn convert_image_with_loss(
         &self,
         image: &RgbImage,
-        num_colors: Option<u32>,
+        options: ColorOptions,
     ) -> (Vec<Color>, u64) {
-        (**self).convert_image_with_loss(image, num_colors)
+        (**self).convert_image_with_loss(image, options)
     }
 
     /// Convert an RGB image to this color depth.
-    fn convert_image(&self, image: &RgbImage, num_colors: Option<u32>) -> Vec<Color> {
-        (**self).convert_image(image, num_colors)
+    fn convert_image(&self, image: &RgbImage, options: ColorOptions) -> Vec<Color> {
+        (**self).convert_image(image, options)
     }
 
     /// Estimate the loss obtained from converting an image.
     /// For the best results, greater discrepancies should result in higher
     /// loss values.
-    fn loss(&self, image: &RgbImage, num_colors: Option<u32>) -> u64 {
-        (**self).loss(image, num_colors)
+    fn loss(&self, image: &RgbImage, options: ColorOptions) -> u64 {
+        (**self).loss(image, options)
     }
 }
 
@@ -165,6 +229,7 @@ impl ColorMapper for fn(Color) -> Color {
     }
 }
 
+/// A color depth implementation with color mapping.
 #[derive(Debug, Default, Copy, Clone)]
 pub struct MappingColorDepth<M>(M);
 
@@ -184,7 +249,7 @@ where
     fn convert_image_with_loss(
         &self,
         image: &RgbImage,
-        num_colors: Option<u32>,
+        options: ColorOptions,
     ) -> (Vec<Color>, u64) {
         let original = image
             .pixels()
@@ -202,7 +267,7 @@ where
             .collect_vec();
 
         // optimize palette and dither
-        let converted_pixels = if let Some(num_colors) = num_colors {
+        let converted_pixels = if let Some(num_colors) = options.num_colors {
             let mut palette = build_palette(&pixels, num_colors);
 
             // reduce palette's color depth
@@ -221,7 +286,7 @@ where
         } else {
             pixels
         };
-        let loss = image_diff(&original, &converted_pixels);
+        let loss = options.loss.image_diff(&original, &converted_pixels);
         (converted_pixels, loss)
     }
 }
@@ -332,7 +397,7 @@ where
     fn convert_image_with_loss(
         &self,
         image: &RgbImage,
-        num_colors: Option<u32>,
+        options: ColorOptions,
     ) -> (Vec<Color>, u64) {
         let original = image
             .pixels()
@@ -343,7 +408,7 @@ where
             .collect_vec();
 
         // optimize palette and dither
-        let converted_pixels = if let Some(num_colors) = num_colors {
+        let converted_pixels = if let Some(num_colors) = options.num_colors {
             let mut palette = build_palette(&original, num_colors);
 
             // reduce palette's color depth
@@ -362,7 +427,7 @@ where
         } else {
             original.clone()
         };
-        let loss = image_diff(&original, &converted_pixels);
+        let loss = options.loss.image_diff(&original, &converted_pixels);
         (converted_pixels, loss)
     }
 }
@@ -449,7 +514,7 @@ where
     fn convert_image_with_loss(
         &self,
         image: &RgbImage,
-        num_colors: Option<u32>,
+        options: ColorOptions,
     ) -> (Vec<Color>, u64) {
         // first try to identify the background color
         let bkg_color = self.background_color(image);
@@ -469,7 +534,7 @@ where
             .collect_vec();
 
         // optimize palette and dither
-        let converted_pixels = if let Some(num_colors) = num_colors {
+        let converted_pixels = if let Some(num_colors) = options.num_colors {
             let mut palette = build_palette(&original, num_colors);
 
             // reduce palette's color depth
@@ -488,7 +553,7 @@ where
         } else {
             original.clone()
         };
-        let loss = image_diff(&original, &converted_pixels);
+        let loss = options.loss.image_diff(&original, &converted_pixels);
 
         (converted_pixels, loss)
     }
@@ -506,11 +571,11 @@ where
     fn convert_image_with_loss(
         &self,
         image: &RgbImage,
-        num_colors: Option<u32>,
+        options: ColorOptions,
     ) -> (Vec<Color>, u64) {
         self.0
             .iter()
-            .map(|cd| cd.convert_image_with_loss(image, num_colors))
+            .map(|cd| cd.convert_image_with_loss(image, options))
             .min_by_key(|(_pixels, loss)| *loss)
             .unwrap()
     }

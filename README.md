@@ -37,6 +37,7 @@ The main options are:
   - `true` or `24bit`: 24-bit RGB color depth
 - `-R WxH`: the resolution to resize the image into.
 - `-S WxH`: the full image output size, resized from the previous option.
+- `-l L2` or `-l L2`: the color distance/loss algorithm to use for color palette selection
 
 To convert an image to look like it was presented in VGA mode 13h,
 with non-square pixels:
