@@ -8,9 +8,10 @@ use retroimg as lib;
 
 /// Convert images to look like in retro IBM hardware
 #[derive(Debug, Parser)]
+#[command(version)]
 pub struct App {
     /// Image file
-    #[clap(name = "FILE", parse(from_os_str))]
+    #[clap(name = "FILE")]
     input: PathBuf,
 
     /// Output image file path
@@ -18,7 +19,6 @@ pub struct App {
         short = 'o',
         long = "out",
         default_value = "out.png",
-        parse(from_os_str)
     )]
     output: PathBuf,
 
@@ -27,7 +27,7 @@ pub struct App {
     standard: ColorStandard,
 
     /// Crop the input image to the rectangle (left, top, width, height)
-    #[clap(short = 'C', long = "crop", parse(try_from_str = parse_rect))]
+    #[clap(short = 'C', long = "crop", value_parser(parse_rect::<u16>))]
     crop: Option<(u16, u16, u16, u16)>,
 
     /// Resolution to resize the image into before color reduction
@@ -36,7 +36,7 @@ pub struct App {
         short = 'R',
         long = "res",
         default_value = "427x200",
-        parse(try_from_str = parse_resolution)
+        value_parser(parse_resolution::<u16>)
     )]
     resolution: (u16, u16),
 
@@ -64,12 +64,12 @@ struct OutSizeOpts {
         short = 'S',
         long = "out-size",
         default_value = "1920x1080",
-        parse(try_from_str = parse_resolution),
+        value_parser(parse_resolution::<u32>),
     )]
     resolution: (u32, u32),
 
     /// Pixel ratio (format `w:h`)
-    #[clap(short = 'r', long = "pixel-ratio", parse(try_from_str = parse_ratio))]
+    #[clap(short = 'r', long = "pixel-ratio", value_parser(parse_ratio::<u32>))]
     pixel_ratio: Option<Ratio<u32>>,
 
     /// Output image width (defined separately)
@@ -83,7 +83,7 @@ struct OutSizeOpts {
 
 /// Options for the kind of color palette to be simulated.
 /// This doesn't affect the image's resolution.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum ColorStandard {
     /// True color 24-bit RGB (8 bits per channel)
     True24Bit,
