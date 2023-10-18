@@ -1,3 +1,4 @@
+//! Color depth manipulation module
 use exoquant::ditherer::FloydSteinberg;
 use exoquant::optimizer::{KMeans, Optimizer};
 use exoquant::{Color, Histogram, Quantizer, Remapper, SimpleColorSpace};
@@ -8,21 +9,6 @@ use std::str::FromStr;
 
 pub mod cga;
 pub mod ega;
-
-#[macro_export]
-macro_rules! value_iter {
-    () => {
-        std::iter::empty()
-    };
-    ($v: expr, $( $rest: expr ), +) => {
-        std::iter::once($v).chain(
-            value_iter!($($rest),*)
-        )
-    };
-    ($v: expr) => {
-        std::iter::once($v)
-    };
-}
 
 /// Enumeration of supported color distance algorithms
 /// for loss calculation.
@@ -587,7 +573,7 @@ where
 {
     let pixels = pixels
         .into_iter()
-        .flat_map(|Color { r, g, b, .. }| value_iter![r, g, b])
+        .flat_map(|Color { r, g, b, .. }| [r, g, b])
         .collect_vec();
     ImageBuffer::from_raw(width, height, pixels).expect("there should be enough pixels")
 }
