@@ -3,6 +3,10 @@
 //! Convert images to appear to be displayed on retro IBM hardware.
 //! It can also be used to reduce the color depth of existing images
 //! for use in DOS game development.
+//! 
+//! See the various functions in this module
+//! (and the submodule [`color`])
+//! for more information.
 use image::imageops::{resize, FilterType};
 use image::{GenericImage, ImageBuffer, Pixel, RgbImage};
 use num_rational::Ratio;
@@ -12,6 +16,9 @@ pub mod color;
 
 pub use crate::color::{ColorDepth, FixedPalette};
 
+/// This is just another name for a cubic resize.
+/// 
+/// Prefer using small values of `nwidth` and `nheight`.
 pub fn reduce<I: 'static>(
     img: &I,
     nwidth: u32,
@@ -23,10 +30,14 @@ where
     resize(img, nwidth, nheight, FilterType::CatmullRom)
 }
 
+/// Crop an image to the given borders.
 pub fn crop(mut image: RgbImage, left: u32, top: u32, width: u32, height: u32) -> RgbImage {
     image::imageops::crop(&mut image, left, top, width, height).to_image()
 }
 
+/// This is just another name for a nearest neighbor resize.
+/// 
+/// Makes it look like it has nice, large pixels.
 pub fn expand<I: 'static>(
     img: &I,
     nwidth: u32,
@@ -38,6 +49,7 @@ where
     resize(img, nwidth, nheight, FilterType::Nearest)
 }
 
+/// An error returned by [`resolve_output_resolution`].
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub))]
 pub enum ResolutionError {
@@ -49,6 +61,15 @@ pub enum ResolutionError {
     TooMany,
 }
 
+/// Identify the intended output resolution based on a combination
+/// of the input resolution, the desired output dimensions,
+/// and/or the pixel ratio.
+///
+/// Only the following combinations of are valid:
+/// 
+/// - `output_width` and `output_height`;
+/// - `pixel_ratio` and `output_width`;
+/// - `pixel_ratio` and `output_height`.
 pub fn resolve_output_resolution(
     width: u32,
     height: u32,
